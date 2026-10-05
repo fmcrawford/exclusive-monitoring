@@ -86,15 +86,16 @@ PORT = int(os.environ.get("PORT", "8765"))
 NOTIFY_SECRET = os.environ.get("NOTIFY_SECRET", "").strip()
 MAX_BODY_SIZE = 500_000
 
-TOKEN = os.environ.get("MTU1NjY3NzcwNzYzMzUyODg4Mg.Gu1-C1.loMk6hiUL2cMCqUws2PKt6aLlrrHg9l2RimDBs", "").strip()
-CHANNEL_ID = int(os.environ.get("1555994415783223426", "0") or 0)
-GUILD_ID = int(os.environ.get("1529800166037651527", "0") or 0)
-VIP_USER_ID = os.environ.get("485849636511285248", "").strip()
+OKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID", "0") or 0)
+GUILD_ID = int(os.environ.get("DISCORD_GUILD_ID", "0") or 0)
+VIP_USER_ID = os.environ.get("VIP_USER_ID", "").strip()
 VIP_FALLBACK_TEXT = os.environ.get("VIP_FALLBACK_TEXT", "")
 SPAM_INTERVAL = float(os.environ.get("SPAM_INTERVAL", "4"))
 SPAM_MAX = int(os.environ.get("SPAM_MAX", "20"))
 # Worker lapor tiap ~1 menit (cron), jadi 150 detik masih aman.
 STALE_SECONDS = int(os.environ.get("STALE_SECONDS", "150"))
+
 
 MIN_SEND_GAP = float(os.environ.get("MIN_SEND_GAP", "1.2"))
 MAX_CONCURRENT_SPAM = int(os.environ.get("MAX_CONCURRENT_SPAM", "5"))
