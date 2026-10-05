@@ -2,7 +2,7 @@
 
 // GANTI dua nilai ini setelah deploy di Deplexo.
 const NOTIFIER_URL = "https://ruby-alcove-9976.de.deplexo.com///notify";
-const NOTIFY_SECRET = "mzPgq6wNe6ZwzXT8IiS1JuoYAhLJlKaTEb1dd-QUuMI";
+const NOTIFY_SECRET = "123abc123abc123";
 const ALLOWED_CODES = new Set(["EX5B99", "EX24AE"]);
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
