@@ -86,7 +86,7 @@ PORT = int(os.environ.get("PORT", "8765"))
 NOTIFY_SECRET = os.environ.get("NOTIFY_SECRET", "").strip()
 MAX_BODY_SIZE = 500_000
 
-OKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+TOKEN = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
 CHANNEL_ID = int(os.environ.get("DISCORD_CHANNEL_ID", "0") or 0)
 GUILD_ID = int(os.environ.get("DISCORD_GUILD_ID", "0") or 0)
 VIP_USER_ID = os.environ.get("VIP_USER_ID", "").strip()
