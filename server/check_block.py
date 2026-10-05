@@ -1,17 +1,3 @@
-"""
-Uji cepat: apakah host ini diblokir Cloudflare saat mengakses API JKT48?
-
-Tidak butuh bot Discord. Jalankan di mesin/server mana pun yang ingin diuji
-(Deplexo, VPS gratis lain, dll.).
-
-Contoh:
-    python check_block.py
-    python check_block.py --proxy http://user:pass@host:port
-    python check_block.py --profiles chrome131 chrome124 safari17_0
-    python check_block.py --events EX5B99
-
-Env opsional: POLL_PROXY, JKT48_COOKIE (sama seperti discord_notifier.py)
-"""
 import argparse
 import os
 import time
@@ -20,8 +6,8 @@ from curl_cffi import requests as cffi_requests
 
 EVENTS = {"EX5B99": "2 Shoot", "EX24AE": "MNG"}
 DEFAULT_PROFILES = [
-    "chrome", "chrome131", "chrome124", "chrome120",
-    "edge101", "safari17_0", "safari18_0", "firefox133",
+    "chrome131", "chrome124", "chrome120",
+    "safari17_0", "firefox133",
 ]
 
 
@@ -39,33 +25,44 @@ def has_ticket_data(payload):
 def try_once(profile, code, proxy, cookie):
     headers = {
         "Accept": "application/json, text/plain, */*",
-        "Accept-Language": "id-ID,id;q=0.9,en;q=0.8",
+        "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
         "Referer": f"https://jkt48.com/purchase/exclusive?code={code}",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-origin",
     }
     if cookie:
         headers["Cookie"] = cookie
+
     kwargs = {"impersonate": profile}
     if proxy:
         kwargs["proxies"] = {"http": proxy, "https": proxy}
+
     try:
-        session = cffi_requests.Session(**kwargs)
-        r = session.get(api_url(code), headers=headers, timeout=15)
+        # Menggunakan context manager agar session selalu ditutup dengan rapi
+        with cffi_requests.Session(**kwargs) as session:
+            r = session.get(api_url(code), headers=headers, timeout=15)
+
+            cf = r.headers.get("cf-mitigated", "")
+            ray = r.headers.get("cf-ray", "")
+
+            if r.status_code != 200:
+                extra = f" cf-mitigated={cf}" if cf else ""
+                return False, f"HTTP {r.status_code}{extra} ray={ray}"
+
+            try:
+                payload = r.json()
+            except ValueError:
+                snippet = " ".join(r.text.split())[:60]
+                return False, f"200 tapi bukan JSON: {snippet}"
+
+            if not has_ticket_data(payload):
+                return False, "200 JSON, tapi tidak ada data session_members"
+
+            return True, "OK, data tiket diterima"
+
     except Exception as e:
         return False, f"error: {type(e).__name__}: {str(e)[:80]}"
-
-    cf = r.headers.get("cf-mitigated", "")
-    ray = r.headers.get("cf-ray", "")
-    if r.status_code != 200:
-        extra = f" cf-mitigated={cf}" if cf else ""
-        return False, f"HTTP {r.status_code}{extra} ray={ray}"
-    try:
-        payload = r.json()
-    except ValueError:
-        snippet = " ".join(r.text.split())[:60]
-        return False, f"200 tapi bukan JSON: {snippet}"
-    if not has_ticket_data(payload):
-        return False, "200 JSON, tapi tidak ada data session_members"
-    return True, "OK, data tiket diterima"
 
 
 def main():
