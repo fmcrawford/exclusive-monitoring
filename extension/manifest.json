@@ -5,7 +5,7 @@
   "permissions": ["storage"],
   "host_permissions": [
     "https://jkt48.com/*",
-    "https://NAMA-APP.up.railway.app/*"
+    "https://ruby-alcove-9976.de.deplexo.com/*"
   ],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
