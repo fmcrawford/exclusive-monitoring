@@ -1,23 +1,35 @@
 {
   "manifest_version": 3,
-  "name": "JKT48 Radar Bridge",
-  "version": "1.0.1",
-  "permissions": ["storage"],
+  "name": "JKT48 Radar Bridge - 4 Events",
+  "version": "1.1.0",
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://jkt48.com/*",
-    "https://ruby-alcove-9976.de.deplexo.com/*"
+    "https://NAMA-APP.up.railway.app/*"
   ],
-  "background": { "service_worker": "background.js" },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
-      "matches": ["https://jkt48.com/purchase/exclusive*"],
-      "js": ["page_hook.js"],
+      "matches": [
+        "https://jkt48.com/purchase/exclusive*"
+      ],
+      "js": [
+        "page_hook.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://jkt48.com/purchase/exclusive*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://jkt48.com/purchase/exclusive*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ]

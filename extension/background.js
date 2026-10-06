@@ -1,18 +1,21 @@
 "use strict";
 
-// GANTI dua nilai ini setelah deploy di Deplexo.
-const NOTIFIER_URL = "https://ruby-alcove-9976.de.deplexo.com/notify";
-const NOTIFY_SECRET = "123abc123abc123";
-const ALLOWED_CODES = new Set(["EX5B99", "EX24AE"]);
+const NOTIFIER_URL = "https://jkt48-deplexo-bot-production.up.railway.app//notify";
+const NOTIFY_SECRET = "mzPgq6wNe6ZwzXT8IiS1JuoYAhLJlKaTEb1dd-QUuMI";
+
+const ALLOWED_CODES = new Set([
+  "EX5B99",
+  "EX24AE",
+  "EXD1A1",
+  "EXA6F1"
+]);
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type !== "JKT48_FULL_REPORT") {
-    return false;
-  }
+  if (message?.type !== "JKT48_FULL_REPORT") return false;
 
   const senderUrl = sender.tab?.url || "";
   const payload = message.payload || {};
-  const code = String(payload.code || "").toUpperCase();
+  const code = String(payload.code || "").trim().toUpperCase();
 
   if (
     !senderUrl.startsWith("https://jkt48.com/purchase/exclusive") ||
@@ -20,7 +23,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   ) {
     sendResponse({
       ok: false,
-      error: "Halaman atau kode event tidak diizinkan."
+      error: `Halaman atau kode event tidak diizinkan: ${code || "-"}`
     });
     return false;
   }
@@ -51,10 +54,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     .catch(error => {
       sendResponse({
         ok: false,
-        error: `Tidak dapat menghubungi notifier lokal: ${error.message}`
+        error: `Tidak dapat menghubungi notifier: ${error.message}`
       });
     });
 
-  // Membiarkan kanal pesan tetap terbuka sampai fetch selesai.
   return true;
 });
