@@ -1034,6 +1034,112 @@ table.hm{border-spacing:4px}
   .freshness-time{grid-column:1/-1;text-align:left}
 }
 </style>
+
+<style id="ui-layout-fix-v2">
+#radarCommand.radar-command{
+  grid-template-columns:minmax(205px,1.25fr) repeat(6,minmax(102px,.72fr)) auto;
+  align-items:stretch;
+}
+#radarCommand .radar-command-brand{min-height:58px}
+#radarCommand .radar-command-actions{align-self:stretch}
+#radarCommand .radar-command-actions .btn{min-width:54px;padding-inline:10px}
+
+#freshnessPanel.freshness-panel{
+  margin:0 0 12px;
+  padding:10px 12px 12px;
+  overflow:visible;
+}
+#freshnessPanel .freshness-head{
+  padding:0 1px 9px;
+  border-bottom:0;
+}
+#freshnessPanel .freshness-title{font-size:12px}
+#freshnessPanel .freshness-sub{font-size:10px}
+#freshnessPanel .freshness-events{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+}
+#freshnessPanel .freshness-row,
+#freshnessPanel .freshness-row:first-child{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:5px 7px;
+  align-items:center;
+  padding:9px 10px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:rgba(255,255,255,.014);
+}
+#freshnessPanel .freshness-name{font-size:11px}
+#freshnessPanel .freshness-state{
+  font-size:9px;
+  padding:3px 6px;
+}
+#freshnessPanel .freshness-time{
+  grid-column:1/-1;
+  text-align:left;
+  font-size:10px;
+  line-height:1.35;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#freshnessPanel .freshness-time b{color:var(--text)}
+#freshnessPanel .freshness-source{
+  font-size:10px;
+  padding:4px 8px;
+}
+
+#staleBanner.alert,
+#pollBanner.help{
+  margin-bottom:9px;
+  padding-top:10px;
+  padding-bottom:10px;
+}
+
+@media(max-width:1050px){
+  #radarCommand.radar-command{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+  #radarCommand .radar-command-brand{
+    grid-column:1/-1;
+    grid-row:auto;
+  }
+  #radarCommand .radar-command-actions{grid-column:1/-1}
+  #radarCommand .radar-command-actions .btn{
+    min-height:40px;
+    flex:1;
+  }
+  #freshnessPanel .freshness-events{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:600px){
+  #radarCommand.radar-command{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  #radarCommand .radar-command-brand,
+  #radarCommand .radar-command-actions{
+    grid-column:1/-1;
+  }
+  #freshnessPanel.freshness-panel{padding:9px}
+  #freshnessPanel .freshness-head{align-items:center}
+  #freshnessPanel .freshness-sub{display:none}
+  #freshnessPanel .freshness-events{
+    grid-template-columns:1fr;
+    gap:6px;
+  }
+  #freshnessPanel .freshness-row,
+  #freshnessPanel .freshness-row:first-child{
+    grid-template-columns:minmax(0,1fr) auto;
+    padding:8px 9px;
+  }
+}
+</style>
+
 </head>
 <body>
 <header>
@@ -2701,7 +2807,7 @@ load(); setPoll(10000);
     if (!rc("radarCommand")) return;
 
     const rows = radarRows();
-    const now = data?.now || Math.floor(Date.now()/1000);
+    const now = Math.floor(Date.now()/1000);
     const currentEvent = data?.events?.[tab];
     const staleAfter = Number(data?.stale_after || 150);
     const age = currentEvent?.updated ? Math.max(0, now-currentEvent.updated) : Infinity;
@@ -2741,9 +2847,13 @@ load(); setPoll(10000);
     const left = nextAt ? Math.max(0, Math.ceil(nextAt - now)) : null;
 
     if (rc("rcNext")) {
-      rc("rcNext").textContent = left != null
-        ? ((blocked ? "~" : "") + left + "s")
-        : "—";
+      if (!direct && left === 0) {
+        rc("rcNext").textContent = "menunggu";
+      } else {
+        rc("rcNext").textContent = left != null
+          ? ((blocked ? "~" : "") + left + "s")
+          : "—";
+      }
     }
 
     if (rc("rcNextSub")) {
@@ -2765,7 +2875,7 @@ load(); setPoll(10000);
     const source = rc("freshnessSource");
     if (!box || !data?.events) return;
 
-    const now = data?.now || Math.floor(Date.now()/1000);
+    const now = Math.floor(Date.now()/1000);
     const staleAfter = Number(data?.stale_after || 150);
     const poller = data?.poller || {};
     const direct = poller.mode === "direct";
@@ -2821,8 +2931,10 @@ load(); setPoll(10000);
           document.createTextNode(" · " + radarAge(ev.updated * 1000))
         );
 
-        if (left != null) {
+        if (left != null && left > 0) {
           time.append(document.createTextNode(" · berikutnya ~" + left + "s"));
+        } else if (!direct && age <= staleAfter) {
+          time.append(document.createTextNode(" · menunggu update"));
         }
       } else {
         time.textContent = "belum pernah menerima data";
