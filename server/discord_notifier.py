@@ -96,7 +96,6 @@ SPAM_MAX = int(os.environ.get("SPAM_MAX", "20"))
 # Worker lapor tiap ~1 menit (cron), jadi 150 detik masih aman.
 STALE_SECONDS = int(os.environ.get("STALE_SECONDS", "150"))
 
-
 MIN_SEND_GAP = float(os.environ.get("MIN_SEND_GAP", "1.2"))
 MAX_CONCURRENT_SPAM = int(os.environ.get("MAX_CONCURRENT_SPAM", "5"))
 RESTOCK_COOLDOWN = int(os.environ.get("RESTOCK_COOLDOWN", "300"))
@@ -1833,6 +1832,21 @@ IMPERSONATE_FALLBACKS = [
 
 POLL_ENABLED = os.environ.get("POLL_ENABLED", "1").strip().lower() not in ("0", "false", "no", "")
 
+# Perkiraan interval laporan browser extension / Worker saat direct poller dimatikan.
+WORKER_INTERVAL = int(os.environ.get("WORKER_INTERVAL", "30"))
+
+# Telemetry runtime poller untuk ditampilkan ke dashboard.
+poll_runtime_lock = threading.Lock()
+poll_runtime = {
+    "cycle_started": None,
+    "last_cycle": None,
+    "next_at": None,
+    "blocked": False,
+    "backoff": 0,
+    "sleep_for": None,
+    "profile": None,
+}
+
 # Jitter kecil supaya tidak terlalu "kaku", tapi tidak bikin interval molor.
 POLL_JITTER_MAX = float(os.environ.get("POLL_JITTER_MAX", "2"))
 # Jeda antar-event DIHAPUS karena polling paralel (thread pool).
@@ -1977,6 +1991,17 @@ def poll_loop():
         started = time.time()
         blocked = False
 
+        with poll_runtime_lock:
+            poll_runtime.update({
+                "cycle_started": started,
+                "last_cycle": started,
+                "next_at": None,
+                "blocked": False,
+                "backoff": backoff,
+                "sleep_for": None,
+                "profile": profiles[profile_idx],
+            })
+
         try:
             with concurrent.futures.ThreadPoolExecutor(max_workers=len(EVENTS)) as ex:
                 futures = {ex.submit(poll_once, session, code): code for code in EVENTS}
@@ -1998,6 +2023,16 @@ def poll_loop():
         elapsed = time.time() - started
         jitter = random.uniform(0, POLL_JITTER_MAX)
         sleep_for = max(5.0, current_poll_interval() - elapsed + jitter + backoff)
+
+        with poll_runtime_lock:
+            poll_runtime.update({
+                "last_cycle": time.time(),
+                "next_at": time.time() + sleep_for,
+                "blocked": blocked,
+                "backoff": backoff,
+                "sleep_for": sleep_for,
+                "profile": profiles[profile_idx],
+            })
 
         if blocked:
             print(f"[POLL] Terblokir, tidur {sleep_for:.0f}s (backoff {backoff}s)")
@@ -2024,9 +2059,22 @@ def poll_loop():
                 
 # ------------------------------------------------------------------ dashboard API
 def poller_info():
+    with poll_runtime_lock:
+        runtime = dict(poll_runtime)
+
     return {
         "enabled": POLL_ENABLED,
         "mode": "direct" if POLL_ENABLED else "worker",
+        "interval": POLL_INTERVAL if POLL_ENABLED else WORKER_INTERVAL,
+        "worker_interval": WORKER_INTERVAL,
+        "ui_refresh": 10,
+        "next_at": runtime.get("next_at"),
+        "cycle_started": runtime.get("cycle_started"),
+        "last_cycle": runtime.get("last_cycle"),
+        "blocked": runtime.get("blocked", False),
+        "backoff": runtime.get("backoff", 0),
+        "sleep_for": runtime.get("sleep_for"),
+        "profile": runtime.get("profile"),
         "status": poll_status,
     }
 
@@ -2051,8 +2099,23 @@ def snapshot():
                     "vip": is_vip(code, v),
                     **speed_stats((c, sdc), quota, now),
                 })
-            events[code] = {"name": name, "updated": last_report.get(code),
-                            "sale": sale_state.get(code, "open"), "lanes": lanes}
+            updated = last_report.get(code)
+        with poll_runtime_lock:
+            direct_next = poll_runtime.get("next_at")
+
+        expected_next = (
+            direct_next if POLL_ENABLED and direct_next
+            else (updated + WORKER_INTERVAL if updated else None)
+        )
+
+        events[code] = {
+            "name": name,
+            "updated": updated,
+            "next_at": expected_next,
+            "source": "direct-poller" if POLL_ENABLED else "browser-extension/worker",
+            "sale": sale_state.get(code, "open"),
+            "lanes": lanes,
+        }
     names = {l["member"] for e in events.values() for l in e["lanes"] if l.get("member")}
     return {"now": now, "stale_after": STALE_SECONDS, "events": events, "war": war_info(),
             "poller": poller_info(), "photos": member_photos.photos_for(names)}
@@ -2212,7 +2275,7 @@ def health_snapshot():
         "now": now, "started": START_TIME, "uptime": uptime,
         "components": comps,
         "requests": {"total": total, "errors": errors},
-        "poller": {"enabled": POLL_ENABLED, "interval": POLL_INTERVAL},
+        "poller": poller_info(),
         "stale_after": STALE_SECONDS,
     }
 
