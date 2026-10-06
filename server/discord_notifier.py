@@ -2100,22 +2100,22 @@ def snapshot():
                     **speed_stats((c, sdc), quota, now),
                 })
             updated = last_report.get(code)
-        with poll_runtime_lock:
-            direct_next = poll_runtime.get("next_at")
+            with poll_runtime_lock:
+                direct_next = poll_runtime.get("next_at")
 
-        expected_next = (
-            direct_next if POLL_ENABLED and direct_next
-            else (updated + WORKER_INTERVAL if updated else None)
-        )
+            expected_next = (
+                direct_next if POLL_ENABLED and direct_next
+                else (updated + WORKER_INTERVAL if updated else None)
+            )
 
-        events[code] = {
-            "name": name,
-            "updated": updated,
-            "next_at": expected_next,
-            "source": "direct-poller" if POLL_ENABLED else "browser-extension/worker",
-            "sale": sale_state.get(code, "open"),
-            "lanes": lanes,
-        }
+            events[code] = {
+                "name": name,
+                "updated": updated,
+                "next_at": expected_next,
+                "source": "direct-poller" if POLL_ENABLED else "browser-extension/worker",
+                "sale": sale_state.get(code, "open"),
+                "lanes": lanes,
+            }
     names = {l["member"] for e in events.values() for l in e["lanes"] if l.get("member")}
     return {"now": now, "stale_after": STALE_SECONDS, "events": events, "war": war_info(),
             "poller": poller_info(), "photos": member_photos.photos_for(names)}
