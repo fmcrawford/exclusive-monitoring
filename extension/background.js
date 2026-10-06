@@ -1,14 +1,51 @@
 "use strict";
 
-const NOTIFIER_URL = "https://jkt48-deplexo-bot-production.up.railway.app//notify";
-const NOTIFY_SECRET = "mzPgq6wNe6ZwzXT8IiS1JuoYAhLJlKaTEb1dd-QUuMI";
-
 const ALLOWED_CODES = new Set([
   "EX5B99",
   "EX24AE",
   "EXD1A1",
   "EXA6F1"
 ]);
+
+async function getNotifierConfig() {
+  const cfg = await chrome.storage.local.get([
+    "notifierUrl",
+    "notifySecret"
+  ]);
+
+  const notifierUrl = String(cfg.notifierUrl || "").trim();
+  const notifySecret = String(cfg.notifySecret || "").trim();
+
+  if (!notifierUrl || !notifySecret) {
+    throw new Error(
+      "Notifier belum dikonfigurasi. Buka Manage extension > Extension options."
+    );
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(notifierUrl);
+  } catch {
+    throw new Error("Notifier URL tidak valid.");
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error("Notifier URL harus menggunakan HTTPS.");
+  }
+
+  const originPattern = parsed.origin + "/*";
+  const permitted = await chrome.permissions.contains({
+    origins: [originPattern]
+  });
+
+  if (!permitted) {
+    throw new Error(
+      "Izin host notifier belum diberikan. Buka Extension options dan simpan ulang konfigurasi."
+    );
+  }
+
+  return { notifierUrl, notifySecret };
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== "JKT48_FULL_REPORT") return false;
@@ -28,19 +65,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
 
-  fetch(NOTIFIER_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Notify-Secret": NOTIFY_SECRET
-    },
-    body: JSON.stringify({
-      ...payload,
-      code,
-      pageUrl: senderUrl
-    })
-  })
-    .then(async response => {
+  (async () => {
+    try {
+      const { notifierUrl, notifySecret } = await getNotifierConfig();
+
+      const response = await fetch(notifierUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Notify-Secret": notifySecret
+        },
+        body: JSON.stringify({
+          ...payload,
+          code,
+          pageUrl: senderUrl
+        })
+      });
+
       const result = await response.json().catch(() => ({
         error: "Server mengembalikan respons yang bukan JSON."
       }));
@@ -50,13 +91,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         status: response.status,
         result
       });
-    })
-    .catch(error => {
+    } catch (error) {
       sendResponse({
         ok: false,
-        error: `Tidak dapat menghubungi notifier: ${error.message}`
+        error: String(error?.message || error)
       });
-    });
+    }
+  })();
 
   return true;
 });

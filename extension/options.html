@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JKT48 Radar - Konfigurasi Notifier</title>
+  <style>
+    body{margin:0;padding:32px;background:#0f1117;color:#eceef5;font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{max-width:680px;margin:auto;background:#181b25;border:1px solid #2a3040;border-radius:16px;padding:24px}
+    h1{margin:0 0 8px;font-size:22px}
+    p{color:#9ca4b8}
+    label{display:block;margin-top:18px;font-weight:700}
+    input{width:100%;box-sizing:border-box;margin-top:6px;padding:11px 12px;background:#10131b;color:#fff;border:1px solid #30384a;border-radius:10px}
+    button{margin-top:20px;padding:11px 18px;border:0;border-radius:10px;background:#ff1763;color:#fff;font-weight:800;cursor:pointer}
+    #status{margin-top:14px;padding:10px 12px;border-radius:10px;background:#111621}
+    .ok{color:#35d88c}.err{color:#ff6675}
+  </style>
+</head>
+<body>
+<main>
+  <h1>JKT48 Radar Notifier</h1>
+  <p>URL dan secret disimpan hanya di Chrome pada perangkat ini. Jangan commit secret ke GitHub.</p>
+  <form id="form">
+    <label for="url">Notifier URL</label>
+    <input id="url" type="url" required placeholder="https://domain-server-kamu/notify">
+    <label for="secret">NOTIFY_SECRET</label>
+    <input id="secret" type="password" placeholder="Kosongkan jika tidak ingin mengganti secret tersimpan">
+    <button type="submit">Simpan & beri izin</button>
+  </form>
+  <div id="status">Belum diperiksa.</div>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

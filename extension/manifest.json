@@ -1,16 +1,22 @@
 {
   "manifest_version": 3,
   "name": "JKT48 Radar Bridge - 4 Events",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
-    "https://jkt48.com/*",
-    "https://NAMA-APP.up.railway.app/*"
+    "https://jkt48.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
   },
   "content_scripts": [
     {
